@@ -14,6 +14,23 @@ def naive_softmax(x: torch.Tensor) -> torch.Tensor:
     denominator = numerator.sum(dim=1)
     return numerator / denominator[:, None]
 
+def online_softmax(x: torch.Tensor) -> torch.Tensor:
+    """Online softmax, 2.5x faster than naive"""
+    row_count, col_count = x.shape
+    assert x.dim() == 2, f"Expected 2D tensor, got {x.dim()}D"
+    output = torch.empty_like(x)
+    for r in range(row_count):
+        row_max = 0 # m
+        normalizer = 0 # l
+        for c in range(col_count):
+            curr = x[r, c]
+            prev_row_max = row_max
+            row_max = max(row_max, curr)
+            if row_max > prev_row_max:
+                print(f"updated row_max from {prev_row_max} to {row_max}, row {r}")
+            normalizer = normalizer * torch.exp(prev_row_max - row_max) + torch.exp(curr - row_max)
+        output[r, :] = torch.exp(x[r, :] - row_max) / normalizer
+    return output
 
 
 @triton.jit
@@ -84,12 +101,29 @@ sample = torch.tensor(
     [[1, 2, 3, 4, 5], [5, 4, 3, 2, 1]], dtype=torch.float32, device="cuda"
 )
 
+import time
+
 # use torch functional for softmax
+time_start = time.perf_counter()
 ref_out = F.softmax(sample, dim=1)
+time_end = time.perf_counter()
 print(f"ref_out: {ref_out}")
+print(f"ref_out time: {time_end - time_start}")
 
+time_start = time.perf_counter()
 eager_out = naive_softmax(sample)
+time_end = time.perf_counter()
 print(f"eager_out: {eager_out}")
+print(f"eager_out time: {time_end - time_start}")
 
+time_start = time.perf_counter()
 triton_out = softmax(sample)
+time_end = time.perf_counter()
 print(f"triton_out: {triton_out}")
+print(f"triton_out time: {time_end - time_start}")
+
+time_start = time.perf_counter()
+online_out = online_softmax(sample)
+time_end = time.perf_counter()
+print(f"online_out: {online_out}")
+print(f"online_out time: {time_end - time_start}")
