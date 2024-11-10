@@ -1,4 +1,4 @@
-# Code eager softmax in PyTorch and Triton
+# Code eager softmax in PyTorch native, Naive, Online, and Triton
 
 import torch
 import triton
@@ -7,7 +7,7 @@ import torch.nn.functional as F
 
 
 def naive_softmax(x: torch.Tensor) -> torch.Tensor:
-    """Eager of softmax"""
+    """Naive softmax"""
     x_max = x.max(dim=1)[0]
     safe_x = x - x_max[:, None]
     numerator = torch.exp(safe_x)
@@ -15,7 +15,7 @@ def naive_softmax(x: torch.Tensor) -> torch.Tensor:
     return numerator / denominator[:, None]
 
 def online_softmax(x: torch.Tensor) -> torch.Tensor:
-    """Online softmax, 2.5x faster than naive"""
+    """Online softmax, 2.5x fewer ops than naive"""
     row_count, col_count = x.shape
     assert x.dim() == 2, f"Expected 2D tensor, got {x.dim()}D"
     output = torch.empty_like(x)
