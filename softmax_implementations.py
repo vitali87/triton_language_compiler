@@ -26,8 +26,8 @@ def online_softmax(x: torch.Tensor) -> torch.Tensor:
             curr = x[r, c]
             prev_row_max = row_max
             row_max = max(row_max, curr)
-            if row_max > prev_row_max:
-                print(f"updated row_max from {prev_row_max} to {row_max}, row {r}")
+            # if row_max > prev_row_max:
+            #     print(f"updated row_max from {prev_row_max} to {row_max}, row {r}")
             normalizer = normalizer * torch.exp(prev_row_max - row_max) + torch.exp(curr - row_max)
         output[r, :] = torch.exp(x[r, :] - row_max) / normalizer
     return output
