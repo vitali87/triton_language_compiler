@@ -4,3 +4,6 @@ torch
 torchvision 
 torchaudio
 triton 
+matplotlib
+pandas
+
