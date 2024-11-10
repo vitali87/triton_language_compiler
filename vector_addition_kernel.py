@@ -81,5 +81,32 @@ def verify_numerical_fidelity():
     fidelity = torch.allclose(output, a + b)
     print(f"Fidelity: {fidelity}")
 
+@triton.testing.perf_report(
+    triton.testing.Benchmark(
+        x_names=["size"],
+        x_vals=[2 ** i for i in range(10, 28, 1)],
+        x_log=True,
+        line_arg="provider",
+        line_vals=['triton', 'torch'],
+        line_names=["Triton", "Torch"],
+        styles=[("blue", "-"), ("green", "-")],
+        ylabel="GB/s",
+        plot_name="vector-addition-performance",
+        args={}
+    )
+)
+
+def benchmark(size, provider):
+    x = torch.rand(size, device="cuda", dtype=torch.float32)
+    y = torch.rand(size, device="cuda", dtype=torch.float32)
+    quantiles = [0.5, 0.2, 0.8]
+    if provider == "torch":
+        ms, min_ms, max_ms = triton.testing.do_bench(lambda: x + y, quantiles=quantiles)
+    if provider == "triton":
+        ms, min_ms, max_ms = triton.testing.do_bench(lambda: vector_addition(x, y), quantiles=quantiles)
+    gbps = lambda ms: 12 * size / ms * 1e-6
+    return gbps(ms), gbps(max_ms), gbps(min_ms)
+
 if __name__ == "__main__":
     verify_numerical_fidelity()
+    benchmark.run(show_plots=True, print_data=True, save_path="./vector_addition_performance")
