@@ -62,18 +62,18 @@ def vector_addition(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     output_buffer = torch.empty_like(a)
     assert a.is_cuda and b.is_cuda
     num_elems = a.numel()
-    assert num_elems == b.numel() #  TODO: handle mismatched sizes
+    assert num_elems == b.numel()
     
-    block_size = 128
+    # block_size = 128
+    block_size = 1024 # trying a bigger size
     grid_size = ceil_div(num_elems, block_size)
-    
+    num_warps = 8
     grid = (grid_size, )
-    k2 = kernel_vector_addition[grid](a, b, output_buffer, num_elems, block_size=block_size)
+    k2 = kernel_vector_addition[grid](a, b, output_buffer, num_elems, block_size=block_size, num_warps=num_warps)
     return output_buffer
 
 def verify_numerical_fidelity():
-    # verify numerical fidelity
-    torch.manual_seed(0) # set seed for reproducibility, seed on both CPU and GPU
+    torch.manual_seed(2020) # set seed for reproducibility, seed on both CPU and GPU
     vector_size = 8192
     a = torch.randn(vector_size).cuda()
     b = torch.randn(vector_size).cuda()
